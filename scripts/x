@@ -1,0 +1,179 @@
+#!/bin/bash
+set -e
+. /opt/Xilinx/14.7/ISE_DS/settings64.sh
+
+setup()
+{
+sudo mount -t tmpfs tmpfs ./tmp
+}
+
+sim()
+{
+echo not implemented
+}
+
+compile()
+{
+. /opt/Xilinx/14.7/ISE_DS/settings64.sh
+source prj
+mkdir -p xst/projnav.tmp &> /dev/null
+xst -ifn ${prj}.xst -ofn ${prj}.srp -intstyle ise
+ngdbuild -intstyle ise -sd ./ipcore_dir -p xc6slx25ftg256-2 -dd _ngo -uc ${prj}.ucf ${prj}.edf
+map -intstyle pa -w -r 4 -ol high ${prj}.ngd
+par -intstyle pa ${prj}.ncd -w ${prj}_routed.ncd -ol high
+trce -intstyle ise -o ${prj}.twr -v 3 -l 30 -nodatasheet -fastpaths ${prj}_routed.ncd ${prj}.pcf
+xdl -secure -ncd2xdl -nopips ${prj}_routed.ncd ${prj}_routed.xdl
+bitgen ${prj}_routed.ncd ${prj}.bit ${prj}.pcf -w -intstyle pa
+}
+
+createsvf()
+{
+. /opt/Xilinx/14.7/ISE_DS/settings64.sh
+cat << EOF | impact -batch
+setMode -bs
+setMode -ss
+setMode -sm
+setMode -hw140
+setMode -spi
+setMode -acecf
+setMode -acempm
+setMode -pff
+setMode -bs
+setMode -bs
+setMode -bs
+setMode -bs
+setCable -port svf -file ./tmp/${prj}.svf
+addDevice -p 1 -file ${prj}.bit
+Program -p 1
+quit
+EOF
+
+}
+
+run()
+{
+source prj
+
+#if [ ! -e ./tmp/${prj}.svf ]; then
+createsvf
+#fi
+
+cat << EOF | jtag
+cable usbblaster
+detect
+svf ./tmp/${prj}.svf
+EOF
+}
+
+setprj()
+{
+echo -n "prj=$1" > prj
+}
+
+info()
+{
+echo not implemented
+}
+
+help()
+{
+	echo $0 compile / setprj / sim / run / info
+}
+
+c()
+{
+	compile
+}
+
+r2()
+{
+source prj
+#if [ ! -e ./tmp/${prj}.svf ]; then
+createsvf
+#fi
+mkimage ./tmp/${prj}.svf ./tmp/${prj}.bin
+h=~/bin/runjtag
+sudo $h run ./tmp/${prj}.bin
+}
+
+r()
+{
+	run
+}
+
+rf()
+{
+source prj
+cat << EOF | impact -batch
+setMode -bs
+setMode -ss
+setMode -sm
+setMode -hw140
+setMode -spi
+setMode -acecf
+setMode -acempm
+setMode -pff
+setMode -bs
+setMode -bs
+setMode -bs
+setMode -bs
+setCable -port svf -file ./tmp/${prj}.svf
+addDevice -p 1 -file $1
+Program -p 1
+quit
+EOF
+
+cat << EOF | jtag
+cable usbblaster
+detect
+svf ./tmp/${prj}.svf
+EOF
+
+}
+
+rf2()
+{
+source prj
+cat << EOF | impact -batch
+setMode -bs
+setMode -ss
+setMode -sm
+setMode -hw140
+setMode -spi
+setMode -acecf
+setMode -acempm
+setMode -pff
+setMode -bs
+setMode -bs
+setMode -bs
+setMode -bs
+setCable -port svf -file ./tmp/${prj}.svf
+addDevice -p 1 -file $1
+Program -p 1
+quit
+EOF
+mkimage ./tmp/${prj}.svf ./tmp/${prj}.bin
+h=~/bin/runjtag
+sudo $h run ./tmp/${prj}.bin
+}
+
+
+rw()
+{
+echo not implemented
+}
+
+gui()
+{
+/opt/Xilinx/14.7/ISE_DS/PlanAhead/bin/planAhead
+}
+
+clean()
+{
+rm -rf _impactbatch.log _ngo/ _xmsgs/ ${prj}.bgn ${prj}.bit ${prj}.bld ${prj}.drc ${prj}.lso ${prj}.map ${prj}.mrp ${prj}.ncd ${prj}.ngc ${prj}.ngd \
+	${prj}.ngm ${prj}.ngr ${prj}.pcf ${prj}.srp ${prj}.twr ${prj}.twx ${prj}_bitgen.xwbt ${prj}_map.xrpt ${prj}_ngdbuild.xrpt ${prj}_par.xrpt \
+	${prj}_routed.ncd ${prj}_routed.pad ${prj}_routed.par ${prj}_routed.ptwx ${prj}_routed.unroutes ${prj}_routed.xdl ${prj}_routed.xpi ${prj}_routed_pad.csv \
+	${prj}_routed_pad.txt ${prj}_summary.xml ${prj}_usage.xml ${prj}_xst.xrpt par_usage_statistics.html webtalk.log xlnx_auto_0_xdb/ xst/
+}
+
+$@
