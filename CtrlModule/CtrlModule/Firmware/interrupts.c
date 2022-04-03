@@ -35,6 +35,13 @@ static void IrqHandler() {
 
 extern void (*_inthandler_fptr)();
 
+void InitInterrupts() {
+	int i;
+	for (i=0; i<IRQ_MAX; i++) {
+		handler[i] = 0;
+	}
+}
+
 void SetIntHandler(int irq, void (*new_handler)()) {
 	_inthandler_fptr = IrqHandler;
 	if (irq < IRQ_MAX) {

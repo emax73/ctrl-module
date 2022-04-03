@@ -29,8 +29,6 @@
 
 unsigned long disk_cr = 0;
 
-#define NR_DISKS    2
-
 #ifndef BLOCK_SIZE
 #define BLOCK_SIZE  512
 #endif
@@ -100,7 +98,7 @@ void DiskSignalsHandler(void) {
   }
 }
 
-unsigned int diskLba[2][NR_DISK_LBA];
+unsigned int diskLba[NR_DISKS][NR_DISK_LBA];
 
 void DiskHandlerSingle(int disk) {
   unsigned long mem, lba;
@@ -174,4 +172,18 @@ int DiskClose(void) {
 }
 
 void DiskInit(void) {
+	int i, j;
+	for (i=0; i<NR_DISKS; i++) {
+		diskIsInserted[i] = 0;
+		diskReadBlock[i] = NOREQ;
+		diskWriteBlock[i] = NOREQ;
+		diskReadOffset[i] = 0;
+		for (j=0; j<NR_DISK_LBA; j++) {
+			diskLba[i][j] = 0;
+		}
+	}
+	mem = 0;
+	disk = 0;
+	disk_cr = 0;
+	laststs = 0;
 }

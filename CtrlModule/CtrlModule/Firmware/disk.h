@@ -13,4 +13,8 @@ extern int DiskClose(void);
 extern void DiskInit(void);
 extern void DiskHandler(void);
 
+#ifndef NR_DISKS
+#define NR_DISKS    2
+#endif
+
 #endif

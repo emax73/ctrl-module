@@ -11,8 +11,8 @@ make || exit 1
 
 testsuite FAT32
 ./testminfat32 > testminfat32.txt || exit 1
-#testsuite FAT16
-#./testminfat16 > testminfat16.txt || exit 1
+testsuite FAT16
+./testminfat16 > testminfat16.txt || exit 1
 # testsuite FAT12
 # ./testminfat12 > testminfat12.txt || exit 1
 testsuite STORAGE

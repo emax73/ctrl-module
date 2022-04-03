@@ -230,7 +230,6 @@ begin
 	window<=osd_enable and hwindowactive and vwindowactive;
 
 	if rising_edge(clk) then
-
 		if pix='1' then
 			if xpixelpos(11 downto 0)=X"FFB" then -- 4 pixel border
 				hwindowactive<='1';

@@ -28,5 +28,6 @@ void SetIntHandler(int irq, void(*handler)());
 void EnableInterrupts();
 void DisableInterrupts();
 int GetInterrupts();
+void InitInterrupts();
 
 #endif

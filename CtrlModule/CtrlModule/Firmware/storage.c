@@ -15,16 +15,19 @@ int GetBits(long filesize) {
 	return bits - 9;
 }
 
-#ifdef USE_LOAD_ROM
+#ifdef LOAD_INITIAL_ROM
 int LoadROM(const char *filename)
 {
 	int result=0;
+  char fnn[13];
+
 
 	//HW_HOST(REG_HOST_CONTROL)=HOST_CONTROL_RESET; //Don't reset on load tape in ZX81 core
 	HW_HOST(REG_HOST_CONTROL)=HOST_CONTROL_DIVERT_SDCARD; // Release reset but take control of the SD card
 	HW_HOST(REG_HOST_BOOTDATATYPE) = TYPE_TAPE;
-
-	if (FileOpen(&file,filename))
+	
+  FilenameNormalise(fnn, filename);
+	if (FileOpen(&file,fnn))
 	{
 		int filesize=file.size;
 		unsigned int c=0;
@@ -44,6 +47,10 @@ int LoadROM(const char *filename)
 					unsigned int t=*p++;
 					HW_HOST(REG_HOST_BOOTDATA)=t;
 				}
+// 				intToStringNoPrefix(fnn, filesize);
+// 				fnn[8] = '\n';
+// 				fnn[9] = '\0';
+// 				OSD_Puts(fnn);
 			}
 			else
 			{
@@ -104,11 +111,15 @@ int SaveFile(const char *fn, void (*callback)(unsigned char *data), long len) {
 	debug(("SaveFile: Checking if file exists\n"));
 	if (FileExists(fn)) {
 		debug(("SaveFile: File exists remove it\n"));
-		if (!FileRm(fn)) {
+#ifdef INCLUDE_FILE_REMOVE
+    if (!FileRm(fn)) {
 			debug(("SaveFile: failed to remove file\n"));
 			return 0;
 		}
-	}
+#else
+    return 0;
+#endif
+  }
 
 	// now create the file
 	debug(("SaveFile: creating file\n"));

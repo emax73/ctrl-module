@@ -49,6 +49,7 @@ void TapeUpdateStatus(void) {
 #define HTAPE_W_HBUSY 0x800
 #define HTAPE_W_HRESET 0x1000
 
+#define TAPE_R_EOB   		0x10
 #define TAPE_R_HRESET   0x8
 #define TAPE_R_DRACK	0x4
 #define TAPE_R_RESET 	0x2
@@ -84,17 +85,23 @@ int TapeGetByte();
 
 static void TapeISR(void) {
 	unsigned int sr = HW_TAPE_R();
+	
+	if ((sr & TAPE_R_EOB) && loadPos >= loadLen) {
+		TapeStop();
+    doTapeRewind = 1;
+	}
 
 	if (sr & TAPE_R_DREQ) {
     if (nrLoadBytes == 0) {
-      int ch = TapeGetByte();
-      nrLoadBytes = ch | (TapeGetByte() << 8);
-      HW_TAPE_W(TAPE_W_DEND | TAPE_W_DACK);
+			if (loadPos < loadLen) {
+				int ch = TapeGetByte();
+				nrLoadBytes = ch | (TapeGetByte() << 8);
+			}
+			HW_TAPE_W(TAPE_W_DEND | TAPE_W_DACK);
     } else {
       HW_TAPE_W(TapeGetByte() | TAPE_W_DACK);
       nrLoadBytes --;
     }
-    if (loadPos >= loadLen) TapeStop();
 	}
 
   if (sr & TAPE_R_DRACK) {
@@ -111,6 +118,7 @@ static unsigned int tapeLbaNr = 0;
 static unsigned int tapeLba[MAX_TAPE_LBA];
 
 static unsigned int mem = 0;
+
 static void LbaCallback(unsigned int lba) {
   if (tapeLbaNr < MAX_TAPE_LBA)
     tapeLba[tapeLbaNr++] = lba;
@@ -192,7 +200,7 @@ void TapeLoadBlock() {
     HW_HTAPE_W(0);
     hyperloadBlock = -1;
   }
-  }
+}
 
 int TapeGetByte() {
   int ch = tape_buffer[buffer][loadPos & 511];
@@ -222,6 +230,7 @@ void TapeRewind(void) {
   nextHyperloadBlock = 0;
   HW_HTAPE_W(HTAPE_W_HRESET);
   HW_HTAPE_W(0);
+	HW_TAPE_W(0);
 
   TapeReadSector(0, tape_buffer[0]);
   TapeReadSector(1, tape_buffer[1]);
@@ -240,11 +249,16 @@ void TapeUseRecordBuffer(void) {
 #endif
 
 void TapeInit(void) {
+	mem = 0;
   loadBlockNr = -1;
   buffer = 0;
   loadLen = 0;
   nextHyperloadBlock = 0;
+	hyperloadBlock = -1;
   tapeLbaNr = 0;
+	doTapeRewind = 0;
+	nrLoadBytes = 0;
+	loadPos = 0;
 #ifdef SAVE_BUFFER
   saveLen = 0;
   savePos = 0;

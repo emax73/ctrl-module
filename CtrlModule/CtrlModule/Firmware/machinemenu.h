@@ -4,5 +4,5 @@
 #define MAX_MACHINE 128
 
 extern void MachineMenu(int row);
-
+extern void MachineInit();
 #endif

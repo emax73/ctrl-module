@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#define USE_LOADFILE
+
 #pragma pack(1)
 #define debug(a) printf a
 

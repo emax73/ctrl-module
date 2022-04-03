@@ -112,7 +112,8 @@ module taploader2#(
   parameter NORMAL_1 = 191,
   parameter NORMAL_0 = 95,
   parameter LEADER_PULSE = 242,
-  parameter SYNC_PULSE = 75,
+  parameter SYNC_PULSE0 = 74,
+  parameter SYNC_PULSE1 = 82,
   parameter ONE_SECOND = 1627
   )(
   input wire[7:0] data_in,
@@ -121,6 +122,7 @@ module taploader2#(
   output reg ack,
   output reg reset_out,
   input wire dend_in,
+  output wire eob,
   input wire clk50m,
   input wire clk,
   input wire play,
@@ -152,6 +154,7 @@ module taploader2#(
   reg demand = 1'b0;
   reg prev_demand = 1'b0;
   reg reset = 1'b0;
+  assign eob = (tap_state == PAUSE);
 
   // read sdram on demand
   always @(posedge clk50m) begin
@@ -213,16 +216,17 @@ module taploader2#(
           tap_state <= LEADER;
           tap_pulse_reload <= LEADER_PULSE;
           tap_pulse_count <= LEADER_PULSE;
-          tap_leader_count <= ONE_SECOND*4; // around 4 seconds of leader
+          tap_leader_count <= ONE_SECOND*5; // around 4 seconds of leader
           demand <= ~demand;
         end
 
       LEADER:
         if (!play) tap_state <= RESET;
         else if (tap_leader_count == 0) begin
+					if (tap_dend) demand <= ~demand;
           tap_state <= SYNC;
-          tap_pulse_reload <= SYNC_PULSE;
-          tap_pulse_count <= SYNC_PULSE;
+          tap_pulse_reload <= SYNC_PULSE1;
+          tap_pulse_count <= SYNC_PULSE0;
           tap_leader_count <= 2;
         end
 
@@ -284,14 +288,14 @@ module taploader2#(
 
     // oscillate the output at tap_pulse_reload clocks for
     // tap_leader_count number of oscillations.
-    if (tap_leader_count) begin
-      if (!tap_pulse_count) begin
+    if (tap_leader_count != 0) begin
+      if (tap_pulse_count == 0) begin
         ear_in <= silence ? 1'b0 : !ear_in;
         tap_pulse_count <= tap_pulse_reload;
         tap_leader_count <= tap_leader_count - 1;
       end else tap_pulse_count <= tap_pulse_count - 1;
     end
-
+    
     // CONSTANT LEADER SIGNAL
     // if (!tap_pulse_count) begin
     //   ear_in <= !ear_in;

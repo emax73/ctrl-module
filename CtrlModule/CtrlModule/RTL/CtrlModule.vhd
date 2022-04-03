@@ -13,7 +13,10 @@ use work.zpupkg.ALL;
 
 entity CtrlModule is
 	generic (
-		sysclk_frequency : integer := 500  -- Sysclk frequency * 10
+		sysclk_frequency : integer := 500;  -- Sysclk frequency * 10
+		ROMSIZE_BITS : integer := 14;
+		USE_UART : integer := 1;
+		USE_TAPE : integer := 1
 	);
 	port (
 		clk 			: in std_logic;
@@ -42,6 +45,7 @@ entity CtrlModule is
 		dipswitches : out std_logic_vector(15 downto 0);
 		host_divert_sdcard : out std_logic;
 		host_divert_keyboard : out std_logic;
+		host_reset : out std_logic := '0';
 
 		-- Tape in/out
 		-- TODO Tape out not implemented at present due to internal memory constraints
@@ -68,7 +72,20 @@ entity CtrlModule is
 		-- Used only for MJ board with PiPICO for JTAG offering multiple cores rather
 		-- than expanding the onboard EEPROM.
 		juart_tx : out std_logic;
-		juart_rx : in std_logic
+		juart_rx : in std_logic;	
+
+		-- Boot upload signals
+		host_bootdata : out std_logic_vector(31 downto 0);
+		host_bootdata_req : out std_logic;
+		host_bootdata_ack : in std_logic :='0';
+		
+		-- keyboard output
+    kbd_kbscan : out std_logic_vector(7 downto 0);
+    kbd_kbhit : out std_logic := '0';
+		
+		-- Device state
+		host_rom_initialised : in  std_logic :='1'
+		; debug : in std_logic_vector(31 downto 0)
 		);
 
 end entity;
@@ -96,6 +113,7 @@ signal tape_dreq : std_logic;
 signal tape_drack : std_logic;
 signal tape_dack : std_logic;
 signal tape_dend : std_logic;
+signal tape_eob : std_logic;
 signal tape_data : std_logic_vector(7 downto 0);
 -- TAPEIN related signal
 -- signal tapein_data : std_logic_vector(7 downto 0);
@@ -109,7 +127,7 @@ signal htape_dclk : std_logic;
 signal htape_reset : std_logic;
 signal htape_data : std_logic_vector(7 downto 0);
 
-signal tape_irq_mask : std_logic_vector(3 downto 0) := "0000";
+signal tape_irq_mask : std_logic_vector(4 downto 0) := "00000";
 
 -- DISK related signals
 signal disk_irq_mask : std_logic_vector(5 downto 0) := "000000";
@@ -127,7 +145,6 @@ signal ps2_int : std_logic;
 signal kbdrecv : std_logic;
 signal kbdrecvreg : std_logic;
 signal kbdrecvbyte : std_logic_vector(10 downto 0);
-
 
 -- Interrupt signals
 constant int_max : integer := 1;
@@ -169,12 +186,18 @@ signal uartrxfifo_empty : std_logic;
 signal uartrxfifo_full : std_logic;
 
 begin
-	tape_data_out <= htape_data;
-	tape_busy <= htape_busy;
-	tape_dclk_out <= htape_dclk;
-	tape_reset_out <= htape_reset;
+  kbd_kbscan <= kbdrecvbyte(7 downto 0);
+  kbd_kbhit <= kbdrecv;
+
+	TAPE: if USE_TAPE = 1 generate
+		tape_data_out <= htape_data;
+		tape_busy <= htape_busy;
+		tape_dclk_out <= htape_dclk;
+		tape_reset_out <= htape_reset;
+	end generate TAPE;
 
 	-- UART
+UART: if USE_UART = 1 generate
 	uart : entity work.simple_uart
 	port map (
 		clk => clk26,
@@ -208,12 +231,13 @@ begin
 		empty => uartrxfifo_empty,
 		full => uartrxfifo_full
 	);
-
+end generate UART;
+	
 	-- ROM
 	myrom : entity work.CtrlROM_ROM
 	generic map
 	(
-		maxAddrBitBRAM => 14
+		maxAddrBitBRAM => ROMSIZE_BITS
 	)
 	port map (
 		clk => clk,
@@ -291,7 +315,9 @@ generic map (
 )
 port map (
 	clk => clk,
-	reset => not reset_n, -- active high!
+-- Disabled reset, as it could desync PS2 reading
+-- 	reset => not reset_n, -- active high!
+	reset => '0',
 	ps2_clk_in => ps2k_clk_in,
 	ps2_dat_in => ps2k_dat_in,
 	ps2_clk_out => ps2k_clk_out,
@@ -305,7 +331,6 @@ port map (
 	recvTrigger => kbdrecv,
 	recvByte => kbdrecvbyte
 );
-
 
 -- SPI Timer
 process(clk)
@@ -342,6 +367,7 @@ spi : entity work.spi_interface
 	);
 
 -- Tape playback
+TAPE2: if USE_TAPE = 1 generate
 taploader_inst : entity work.taploader2
 port map(
 	data_in => tape_data(7 downto 0),
@@ -350,13 +376,14 @@ port map(
 	data_req => tape_dreq,
 	reset_out => tape_reset,
 	dend_in => tape_dend,
+	eob => tape_eob,
 	clk50m => clk26,
 	clk => clk390k625,
 	play => dipswitchesr(10),
 	ear_in => ear_out,
 	turbo_loading => dipswitchesr(11)
 );
-
+end generate TAPE2;
 -- Tape record
 -- tapsaver_inst : entity work.tapsaver2
 -- port map(
@@ -388,7 +415,8 @@ int_triggers<=(0=>kbdrecv,
 					1=>
 						(tape_dreq xor tape_irq_mask(0)) or
 						(tape_drack xor tape_irq_mask(2)) or
-						(cpu_reset xor tape_irq_mask(3)),
+						(cpu_reset xor tape_irq_mask(3)) or
+						(tape_eob xor tape_irq_mask(4)),
 					others => '0');
 
 process(clk)
@@ -397,7 +425,7 @@ begin
 		int_enabled<='0';
 		kbdrecvreg <='0';
 		-- host_reset_n <='0';
-		-- host_bootdata_req<='0';
+		host_bootdata_req<='0';
 		spi_active<='0';
 		spi_cs<='1';
 	elsif rising_edge(clk) then
@@ -477,14 +505,14 @@ begin
 							host_to_spi<=mem_write(7 downto 0);
 							spi_active<='1';
 
-						-- when X"E8" => -- Host boot data
-						-- 	-- Note that we don't clear mem_busy here; it's set instead when the ack signal comes in.
-						-- 	host_bootdata<=mem_write;
-						-- 	host_bootdata_req<='1';
-						-- 	host_bootdata_sig <= '0';
+						when X"E8" => -- Host boot data
+							-- Note that we don't clear mem_busy here; it's set instead when the ack signal comes in.
+							host_bootdata<=mem_write;
+							host_bootdata_req<='1';
 
 						when X"EC" => -- Host control
 							mem_busy<='0';
+							host_reset<=mem_write(0);
 							host_divert_keyboard<=mem_write(1);
 							host_divert_sdcard<=mem_write(2);
 	
@@ -506,8 +534,8 @@ begin
 					when X"A" => -- Tape interface
 						case mem_addr(7 downto 0) is
 							when X"00" =>
-								mem_read(7 downto 0) <= "0000" & cpu_reset & tape_drack & tape_reset & tape_dreq;
-								tape_irq_mask(3 downto 0) <= cpu_reset & tape_drack & tape_reset & tape_dreq;
+								mem_read(7 downto 0) <= "000" & tape_eob & cpu_reset & tape_drack & tape_reset & tape_dreq;
+								tape_irq_mask(4 downto 0) <= tape_eob & cpu_reset & tape_drack & tape_reset & tape_dreq;
 								mem_busy <= '0';
 							when X"04" =>
 								mem_read(0) <= tape_hreq;
@@ -565,6 +593,16 @@ begin
 								mem_read(11 downto 0)<=kbdrecvreg & '1' & kbdrecvbyte(10 downto 1);
 								kbdrecvreg<='0';
 								mem_busy<='0';
+								
+							when X"F0" => -- Read host status
+								mem_read <= (others =>'X');
+								mem_read(0) <= host_rom_initialised;
+								mem_busy <= '0';
+
+							when X"F4" => -- Read host status
+								mem_read(31 downto 0) <= debug(31 downto 0);
+								mem_busy <= '0';
+								
 							when others =>
 								mem_busy<='0';
 								null;
@@ -574,6 +612,12 @@ begin
 						mem_busy<='0';
 				end case;
 			-- end if;
+		end if;
+
+		-- Boot data termination - allow CPU to proceed once boot data is acknowleged:
+		if host_bootdata_ack='1' then
+			mem_busy<='0';
+			host_bootdata_req<='0';
 		end if;
 
 		-- SPI cycle termination

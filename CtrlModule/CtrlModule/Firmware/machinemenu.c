@@ -1,3 +1,4 @@
+#ifndef NO_MACHINE_MENU
 #include "machinemenu.h"
 #include "uart.h"
 #include "menu.h"
@@ -7,9 +8,17 @@
 extern struct menu_entry topmenu[];
 
 #define MAX_MACHINE 128
+#define NR_IMAGES_PAGE		10
 
 static int base = 0;
 static int nextpage = 0;
+char names[1024];
+const char ready[] = "Ready";
+
+void MachineInit() {
+	base = 0;
+	nextpage = 0;
+}
 
 void MachineStart(int row);
 struct menu_entry machinemenu[MAX_MACHINE] = {
@@ -53,13 +62,6 @@ int readLine(char *b, int maxline) {
 	}
 	return cnt;
 }
-
-char names[1024];
-
-const char ready[] = "Ready";
-
-#define NR_IMAGES_PAGE		10
-
 
 int containsString(const char *s, int sl, const char *match, int len) {
 	int m = 0, i=0;
@@ -168,6 +170,7 @@ void MachineMenu(int row) {
 	Menu_Set(machinemenu);
 	UartTx("xxx", 3);
 }
+#endif
 
 /*
 !PlEaSeLeTmEjTaG!

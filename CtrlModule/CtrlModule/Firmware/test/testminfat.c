@@ -56,7 +56,7 @@ void testCreateDir(void) {
   DirCd("ABC");
   nr_entries = 0;
   dir(show);
-  passifeq(nr_entries, 33, "dir removed");
+  passifeq(nr_entries, 514, "dir removed");
 }
 
 /************************************************************************************/
@@ -248,7 +248,7 @@ void testLegacy() {
   printf("current_directory_cluster = %u\n", current_directory_cluster);
   nr_entries = 0;
   dir(show);
-  passifeq(nr_entries, 33, "got zx dir");
+  passifeq(nr_entries, 514, "got zx dir");
 
   TEST_resetdir();
   // dir(show);
@@ -282,7 +282,7 @@ void testLegacy() {
   DirCd("ZX        ");
   nr_entries = 0;
   dir(show);
-  passifeq(nr_entries, 33, "got zx dir");
+  passifeq(nr_entries, 514, "got zx dir");
   DirCd("ROMS      ");
   nr_entries = 0;
   dir(show);

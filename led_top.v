@@ -39,7 +39,7 @@ module led_top(
 	
   //------->8------->8------->8------->8------->8------->8------->8------->8------->8
   // test pads to connect to logic analyser
-	assign tp[3:0] = 4'h0;
+	assign tp[3:0] = {ear_in, 3'h0};
 
   assign aud_left = ear_in;
   assign aud_right = ear_in;

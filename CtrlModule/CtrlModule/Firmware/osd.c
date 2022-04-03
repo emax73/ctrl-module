@@ -5,7 +5,16 @@
 #include "osd.h"
 #include "host.h"
 
+static int pixelclock=2;
+static int osd_syncpolarity;
 int osd_cursory, osd_cursorx;
+
+void OSD_Init() {
+	pixelclock=2;
+	osd_syncpolarity = 0;
+	osd_cursory = 0;
+	osd_cursorx = 0;
+}
 
 void OSD_Clear()
 {
@@ -82,9 +91,6 @@ void OSD_ProgressBar(int v,int bits)
 }
 
 
-static int pixelclock=2;
-static int osd_syncpolarity;
-
 void OSD_Show(int visible)
 {
 	int hf, vf;
@@ -127,8 +133,12 @@ void OSD_Show(int visible)
 	// if (hh < 150)
 	// 	pixelclock=2;
 	// else
-		pixelclock=1;
-
+#ifdef SAMCOUPE
+  pixelclock=2;
+#else
+  pixelclock=1;
+#endif
+  
 	HW_OSD(REG_OSD_PIXELCLOCK)=(1<<pixelclock)-1;
 
 	dipsw=HW_HOST(REG_HOST_SW);
@@ -146,8 +156,13 @@ void OSD_Show(int visible)
 	// HW_OSD(REG_OSD_XPOS)=hl;
 	// HW_OSD(REG_OSD_YPOS)=-vl;
 
-	HW_OSD(REG_OSD_XPOS)=-100;
-	HW_OSD(REG_OSD_YPOS)=-200;
+#ifdef SAMCOUPE
+  HW_OSD(REG_OSD_XPOS)=-200;
+  HW_OSD(REG_OSD_YPOS)=-100;
+#else
+  HW_OSD(REG_OSD_XPOS)=-100;
+  HW_OSD(REG_OSD_YPOS)=-100;
+#endif
 
 	// HW_OSD(REG_OSD_XPOS)=-92;
 	// HW_OSD(REG_OSD_YPOS)=-240;

@@ -91,6 +91,37 @@ char longfilename[260];
 int prevlfn=0;
 #endif
 
+void FatInit() {
+	directory_cluster = 0;
+	entries_per_cluster = 0;
+
+	fat32 = 0;
+	fat_start = 0;
+	data_start = 0;
+	root_directory_cluster = 0;
+	root_directory_start = 0;
+	root_directory_size = 0;
+	fat_number = 0;
+	cluster_size = 0;
+	cluster_mask = 0;
+	cluster_size_p2 = 0;
+	fat_size = 0;
+	fs_info_sector = 0;
+	first_free_cluster = 2;
+	boot_sector = 0;
+
+	current_directory_cluster = 0;
+	current_directory_start = 0;
+
+	partitioncount = 0;
+
+	dir_entries = 0;
+
+	#ifndef DISABLE_LONG_FILENAMES
+	prevlfn=0;
+	#endif
+}
+
 // forward declarations
 static int IsLastCluster(unsigned long cluster);
 static void GetFSinfo(void);
@@ -601,6 +632,8 @@ void ChangeDirectory(DIRENTRY *p)
 	{
 		current_directory_cluster = SwapBB(p->StartCluster);
 		current_directory_cluster |= fat32 ? (SwapBB(p->HighCluster) & 0x0FFF) << 16 : 0;
+	} else {
+		current_directory_cluster = 0;
 	}
 	if(current_directory_cluster)
 	{
@@ -691,6 +724,7 @@ int DirCd(const char *dir) {
 	return d.foundIt;
 }
 
+#ifdef INCLUDE_FILE_REMOVE
 static int FileRemoveAction_cb(void *pv, DIRENTRY *de, char *lfn, int index, int prevlfn) {
   struct DirCd_Struct *d = (struct DirCd_Struct *)pv;
 
@@ -718,6 +752,7 @@ int FileRm(const char *dir) {
 	}
 	return 0;
 }
+#endif // DISABLE_FILE_REMOVE
 
 int FileExists(const char *dir) {
 	return FileExistsEx(dir, NULL);
@@ -818,6 +853,7 @@ int FileCreate(const char *fn, unsigned long fileSize) {
 	return FileCreateEx(fn, fileSize, ATTR_ARCHIVE, NULL);
 }
 
+#ifdef INCLUDE_DIR_MAKE
 int DirMkdir(const char *fn) {
 	unsigned long cluster;
 	DIRENTRY *de = (DIRENTRY *)sector_buffer;
@@ -854,7 +890,9 @@ int DirMkdir(const char *fn) {
 	}
 	return 0;
 }
+#endif // #ifdef INCLUDE_DIR_MAKE
 
+#ifdef INCLUDE_DIR_REMOVE
 struct DirRemoveSurvey_Struct {
 	int foundIt;
 };
@@ -899,6 +937,7 @@ int DirRm(const char *dir) {
 	debug(("file CAN be removed - Continuing\n"));
 	return FileRm(dir);
 }
+#endif // #ifdef INCLUDE_DIR_REMOVE
 
 unsigned long MaxLba() {
 	return (fat_size*128*cluster_size)+root_directory_start;

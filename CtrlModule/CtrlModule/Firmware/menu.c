@@ -29,10 +29,21 @@ static int menu_visible=0;
 #define SW_WP_D0			0x40
 #define SW_WP_D1			0x80
 
-int menu_toggle_bits=0x6 | SW_DBLWIN | SW_WP_D0 | SW_WP_D1;
+#ifdef SAMCOUPE
+#define MENU_TOGGLE_BITS_DEFAULT    0x6 | SW_WP_D0 | SW_WP_D1
+#else
+#define MENU_TOGGLE_BITS_DEFAULT    0x6 | SW_DBLWIN | SW_WP_D0 | SW_WP_D1
+#endif
+
+int menu_toggle_bits=MENU_TOGGLE_BITS_DEFAULT;
 static int menurows;
 static int currentrow;
 static struct hotkey *hotkeys;
+
+void Menu_Init() {
+	menu_visible = 0;
+	menu_toggle_bits=MENU_TOGGLE_BITS_DEFAULT;
+}
 
 struct menu_entry *Menu_Get()
 {
@@ -53,6 +64,7 @@ void Menu_Hide()
 }
 
 
+#ifdef EXTRA_MENU_WIDGETS
 static void DrawSlider(struct menu_entry *m)
 {
 	int i;
@@ -61,7 +73,7 @@ static void DrawSlider(struct menu_entry *m)
 		OSD_Putchar(i<MENU_SLIDER_VALUE(m) ? 0x07 : 0x20);
 	}
 }
-
+#endif
 
 void Menu_Draw()
 {
@@ -76,7 +88,8 @@ void Menu_Draw()
 		OSD_SetY(menurows);
 		switch(m->type)
 		{
-			case MENU_ENTRY_CYCLE:
+#ifdef EXTRA_MENU_WIDGETS
+      case MENU_ENTRY_CYCLE:
 				i=MENU_CYCLE_VALUE(m);	// Access the first byte
 				labels=(char**)m->label;
 				OSD_Puts("\x16 ");
@@ -86,7 +99,8 @@ void Menu_Draw()
 				DrawSlider(m);
 				OSD_Puts(m->label);
 				break;
-			case MENU_ENTRY_TOGGLE:
+#endif
+      case MENU_ENTRY_TOGGLE:
 				if((menu_toggle_bits>>MENU_ACTION_TOGGLE(m->action))&1)
 					OSD_Puts("\x14 ");
 				else
@@ -130,7 +144,7 @@ int Menu_Run()
 	}
 
 	if(!menu_visible)	return 0;
-
+	
 #ifdef JOYKEYS
 	joykeys=0;
 
@@ -220,6 +234,7 @@ int Menu_Run()
 	OSD_SetX(2);
 	OSD_SetY(currentrow);
 
+#ifdef EXTRA_MENU_WIDGETS
 	if(TestKey(KEY_LEFTARROW)&2) // Decrease slider value
 	{
 		switch(m->type)
@@ -247,7 +262,7 @@ int Menu_Run()
 				break;
 		}
 	}
-
+#endif
 
 	if((TestKey(KEY_ENTER)&2) ONLY_JOYKEYS(|| (TestKey(keys_p1[4])&2)))
 	{
@@ -271,7 +286,8 @@ int Menu_Run()
 				menu_toggle_bits^=i;
 				Menu_Draw();
 				break;
-			case MENU_ENTRY_CYCLE:
+#ifdef EXTRA_MENU_WIDGETS
+      case MENU_ENTRY_CYCLE:
 				i=MENU_CYCLE_VALUE(m)+1;
 				if(i>=MENU_CYCLE_COUNT(m))
 					i=0;
@@ -280,7 +296,7 @@ int Menu_Run()
 				break;
 			default:
 				break;
-
+#endif
 		}
 	}
 

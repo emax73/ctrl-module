@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
-
-#define SAVE_BUFFER
+#define USE_LOADFILE
+//#define SAVE_BUFFER
 
 unsigned char *loadBuff;
 unsigned char *saveBuff;
@@ -18,6 +18,14 @@ unsigned int TAPE_W = 0;
 
 void HW_TAPE_W(unsigned int a) {
   TAPE_W = a;
+}
+unsigned int HTAPE_W = 0;
+
+void HW_HTAPE_W(unsigned int a) {
+  HTAPE_W = a;
+}
+unsigned int HW_HTAPE_R() {
+  return HTAPE_W;
 }
 
 unsigned int TAPEIN_R = 0;
@@ -169,14 +177,17 @@ void testLoad() {
 
 void testInit() {
   passifeq(handlers[IRQ_TAPE], NULL, "check no isrs installed");
-  passifeq(handlers[IRQ_TAPEACK], NULL, "check no isrs installed");
+  //passifeq(handlers[IRQ_TAPEACK], NULL, "check no isrs installed");
+#ifdef TEST_TAPEIN
   passifeq(handlers[IRQ_TAPEIN], NULL, "check no isrs installed");
+#endif
   TapeInit();
-  passifeq(handlers[IRQ_TAPE], LoadHandler, "check isrs installed");
-  passifeq(handlers[IRQ_TAPEACK], LoadHandlerAck, "check isrs installed for save");
+  passifeq(handlers[IRQ_TAPE], TapeISR, "check isrs installed");
+  //passifeq(handlers[IRQ_TAPEACK], LoadHandlerAck, "check isrs installed for save");
 }
 
 void testSave() {
+#ifdef TEST_TAPEIN
   passifeq(handlers[IRQ_TAPEIN], SaveHandler, "check isrs installed");
   TAPEIN_R = TAPEIN_W = 0;
 
@@ -223,6 +234,7 @@ void testSave() {
   passifeq(nr, 255, "block contents sorted");
 
   hexdump(buff2, savePos);
+#endif
 }
 
 int main(void) {

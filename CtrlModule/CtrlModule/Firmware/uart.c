@@ -1,3 +1,4 @@
+#ifndef NO_MACHINE_MENU
 #include "uart.h"
 #include "interrupts.h"
 
@@ -132,3 +133,4 @@ void UartLoop(void) {
   len = UartRx(str, sizeof str);
   UartTx(str, len);
 }
+#endif

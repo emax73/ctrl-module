@@ -13,6 +13,7 @@
 #include "disk.h"
 #include "misc.h"
 #include "uart.h"
+#include "machinemenu.h"
 
 fileTYPE file;
 
@@ -38,12 +39,23 @@ void Delay()
 	}
 }
 
+#ifdef LOAD_INITIAL_ROM
+void LoadInitialRom(void) {
+	OSD_Puts("Loading ROMs...\n...from /" SYSTEM_DIR "/" ROMPAK "...");
+	if (DirCd(SYSTEM_DIR)) {
+		LoadROM(ROMPAK);
+	} else OSD_Puts("Failed to change directory");
+}
+#endif
+
+#ifdef RESET_MENU
 void Reset(int row)
 {
 	HW_HOST(REG_HOST_CONTROL)=HOST_CONTROL_RESET|HOST_CONTROL_DIVERT_KEYBOARD; // Reset host core
 	Delay();
 	HW_HOST(REG_HOST_CONTROL)=HOST_CONTROL_DIVERT_KEYBOARD;
 }
+#endif
 
 struct menu_entry topmenu[]; // Forward declaration.
 
@@ -187,11 +199,13 @@ void diskstatus_LoadDisk0(int row) {
 	FileSelector_Show(row);
 }
 
+#if NR_DISKS==2
 void diskstatus_LoadDisk1(int row) {
 	diskNr = 1;
 	FileSelector_SetLoadFunction(diskstatus_LoadDiskReal);
 	FileSelector_Show(row);
 }
+#endif
 
 #ifdef WRITE_E5_TO_DISK
 void SaveBlankDiskCallback(unsigned char *data) {
@@ -237,35 +251,77 @@ static struct menu_entry diskstatus[]=
 	{MENU_ENTRY_SUBMENU,"",MENU_ACTION(diskstatus)},
 	{MENU_ENTRY_CALLBACK,"Insert disk 0",MENU_ACTION(diskstatus_LoadDisk0)},
 	{MENU_ENTRY_TOGGLE, "Write protect disk 0",MENU_ACTION(6)},
-	{MENU_ENTRY_CALLBACK,"Insert disk 1",MENU_ACTION(diskstatus_LoadDisk1)},
+#if NR_DISKS==2
+  {MENU_ENTRY_CALLBACK,"Insert disk 1",MENU_ACTION(diskstatus_LoadDisk1)},
 	{MENU_ENTRY_TOGGLE,"Write protect disk 1",MENU_ACTION(7)},
+#endif
 	{MENU_ENTRY_CALLBACK,"Create blank disk",MENU_ACTION(diskstatus_CreateBlank)},
 	{MENU_ENTRY_SUBMENU,"",MENU_ACTION(diskstatus)},
 	{MENU_ENTRY_SUBMENU,"Back",MENU_ACTION(&topmenu)},
 	{MENU_ENTRY_NULL,0,0}
 };
 
+#ifdef LOAD_INITIAL_ROM
+static int romboot_LoadRomPack(const char *filename) {
+	HW_HOST(REG_HOST_CONTROL)=HOST_CONTROL_RESET|HOST_CONTROL_DIVERT_SDCARD;
+	Delay();
+	HW_HOST(REG_HOST_CONTROL)=HOST_CONTROL_DIVERT_SDCARD;
+
+	LoadROM(filename);
+	Menu_Set(topmenu);
+	OSD_Show(0);
+	return 0;
+}
+
+void mainmenu_LoadRomPack(int row) {
+	FileSelector_SetLoadFunction(romboot_LoadRomPack);
+	FileSelector_Show(row);
+}
+#endif
+
+#ifdef DEBUG
+void debugit(int row) {
+  char str[10];
+  intToStringNoPrefix(str, (*(unsigned int *)DEBUGSTATE));
+  str[8] = '\n';
+  str[9] = '\0';
+  OSD_Puts(str);
+}
+#endif
+
 ////////////////////////////////////////////////////////////////////////////////
 // TOP LEVEL MENU
+#ifndef NO_MACHINE_MENU
 void MachineMenu(int row);
+#endif
 struct menu_entry topmenu[]=
 {
-	{MENU_ENTRY_CALLBACK,"Reset",MENU_ACTION(&Reset)},
+#ifdef DEBUG
+  {MENU_ENTRY_CALLBACK,"Debug",MENU_ACTION(&debugit)},
+#endif
+#ifdef LOAD_INITIAL_ROM
+	{MENU_ENTRY_CALLBACK,"Boot rompack         \x10",MENU_ACTION(&mainmenu_LoadRomPack)},
+#endif
+#ifdef RESET_MENU
+  {MENU_ENTRY_CALLBACK,"Reset",MENU_ACTION(&Reset)},
+#endif
 #ifdef OPTION_MENU
 	{MENU_ENTRY_SUBMENU, "Options              \x10",MENU_ACTION(optionsmenu)},
 #endif
 #ifdef SWITCHES_MENU
 	{MENU_ENTRY_SUBMENU, "Switches             \x10",MENU_ACTION(switchesmenu)},
 #endif
-	{MENU_ENTRY_TOGGLE,  "Double OSD window",MENU_ACTION(5)},
 #ifndef SAMCOUPE
-	{MENU_ENTRY_TOGGLE,  "Upgrade SPI settings",MENU_ACTION(8)},
+	{MENU_ENTRY_TOGGLE,  "Double OSD window",MENU_ACTION(5)},
+	{MENU_ENTRY_TOGGLE,  "Advanced memmap",MENU_ACTION(8)},
 #endif
 #ifndef DISABLE_TAPE
 	{MENU_ENTRY_SUBMENU, "Tape menu            \x10",MENU_ACTION(tapestatus)},
 #endif
 	{MENU_ENTRY_SUBMENU, "Disk menu            \x10",MENU_ACTION(diskstatus)},
+#ifndef NO_MACHINE_MENU
 	{MENU_ENTRY_CALLBACK, "Machine menu         \x10",MENU_ACTION(MachineMenu)},
+#endif
 	{MENU_ENTRY_CALLBACK,"Exit",MENU_ACTION(&Menu_Hide)},
 	{MENU_ENTRY_NULL,0,0}
 };
@@ -304,9 +360,24 @@ int main(int argc,char **argv)
 {
 	int i;
 	int dipsw=0;
+	int rom_initialised;
+	
+	rom_initialised = (*(unsigned int *)HOSTSTATE) & 1;
 
+	
+	InitInterrupts();
+	ClearKeyboard();
+#ifndef NO_MACHINE_MENU
+	MachineInit();
+#endif
+	Menu_Init();
+	FatInit();
+	OSD_Init();
+	
 	// Put the host core in reset while we initialise...
-	HW_HOST(REG_HOST_CONTROL)=HOST_CONTROL_RESET|HOST_CONTROL_DIVERT_SDCARD;
+	
+	if (!rom_initialised)
+		HW_HOST(REG_HOST_CONTROL)=HOST_CONTROL_RESET|HOST_CONTROL_DIVERT_SDCARD;
 
 	PS2Init();
 	EnableInterrupts();
@@ -329,7 +400,11 @@ int main(int argc,char **argv)
 	if(!FindDrive())
 		return(0);
 
-
+#ifdef LOAD_INITIAL_ROM
+	if (!rom_initialised)
+		LoadInitialRom();
+#endif
+	
 	// setup tape interface
 #ifndef DISABLE_TAPE
 	tapestatus[1].label = tapeLoadSize;
@@ -340,27 +415,14 @@ int main(int argc,char **argv)
 	TapeUpdateStatus();
 #endif
 	DiskInit();
+#ifndef NO_MACHINE_MENU
 	UartInit();
-
-#ifdef SAMCOUPE
-	if (DirCd("SAMCOUPE")) {
-	}
-#else
-	DiskOpen(0, "DISK.OPD");
-	if (DirCd("ZX")) {
-		if (DirCd("TAP")) {
-			TapeLoad("WTSS.TAP");
-		}
-	}
 #endif
-
-
+  
 	Menu_Set(topmenu);
-	Menu_Show();
-
-	// OSD_Show(0);
 
 	// bring out of reset
+	OSD_Show(0);
 	HW_HOST(REG_HOST_CONTROL)=HOST_CONTROL_DIVERT_SDCARD;
 	while(1)
 	{

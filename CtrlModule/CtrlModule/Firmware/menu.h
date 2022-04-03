@@ -43,6 +43,7 @@ struct hotkey
 };
 
 
+void Menu_Init();
 void Menu_Show();
 void Menu_Hide();
 void Menu_Draw();

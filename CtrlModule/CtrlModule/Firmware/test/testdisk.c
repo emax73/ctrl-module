@@ -68,7 +68,7 @@ void testDiskInit(void) {
   passif(DirCd("zx"), "cd zx");
   passif(DirCd("disks"), "cd disks");
 
-  passifeq(handlers[IRQ_DISK], NULL, "no ISR installed");
+  //passifeq(handlers[IRQ_DISK], NULL, "no ISR installed");
   DiskInit();
 }
 
@@ -132,13 +132,13 @@ void write_data(unsigned int c) {
 
 void read_sector(int disk, int sector) {
   DISK_SR = (disk ? HW_DISK_READSECTOR1 : HW_DISK_READSECTOR0) | sector;
-  handlers[IRQ_DISK]();
+  //handlers[IRQ_DISK]();
   DiskHandler();
 }
 
 void update_disk(int flags, int sector) {
   DISK_SR = flags | sector;
-  handlers[IRQ_DISK]();
+  //handlers[IRQ_DISK]();
   DiskHandler();
 }
 
@@ -162,7 +162,7 @@ int isBlank(unsigned char *buffer) {
 void testHappyPath(int disk) {
   // int ack = (disk ? HW_DISK_CR_ACK1 : HW_DISK_CR_ACK0);
   // int fin = (disk ? HW_DISK_CR_FIN1 : HW_DISK_CR_FIN0);
-  passifeq(handlers[IRQ_DISK], DiskISR, "ISR installed");
+  //passifeq(handlers[IRQ_DISK], DiskISR, "ISR installed");
   passif(!diskIsInserted[disk], "no disk inserted");
   passif(DiskOpen(disk, "SDCLD01.OPD"), "open actual disk");
   passif(diskIsInserted[disk], "disk inserted");

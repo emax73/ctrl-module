@@ -20,6 +20,9 @@ $2
 w
 EOF
 
+GAMESSRC=${MYHOME}/Documents/sorted/retro/zxspectrum
+ROMSSRC=${MYHOME}/fpga-xilinx/acorn-electron/roms/
+DISKSRC=${MYHOME}/Documents/sorted/retro/opus/specdisks/
 losetup -P /dev/loop55 ./tmp/card.$1
 mkfs.vfat -F $1 $3 /dev/loop55p1
 
@@ -27,17 +30,17 @@ mkdir t
 mount /dev/loop55p1 t
 
 dd if=/dev/zero of=./t/bigfile bs=1024 count=32768
-cp ../../../../../acorn-electron/roms/* t
+cp ${ROMSSRC}/* ./t 
 
 mkdir t/zx
-cp -v ~/mygames/*.tap ./t/zx
-cp -v ~/mygames/*.tzx ./t/zx
+cp -v ${GAMESSRC}/*.tap ./t/zx
+cp -v ${GAMESSRC}/*.tzx ./t/zx
 
 mkdir t/zx/roms
-cp ../../../../../acorn-electron/roms/* t/zx/roms
+cp ${ROMSSRC}/* t/zx/roms
 
 mkdir t/zx/disks
-cp ~/transfer/specdisks/sdcld*.opd t/zx/disks
+cp ${DISKSRC}/sdcld*.opd t/zx/disks
 
 mkdir t/empty
 umount t

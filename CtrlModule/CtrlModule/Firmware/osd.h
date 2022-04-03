@@ -30,6 +30,7 @@ void OSD_Putchar(int c);
 void OSD_ProgressBar(int v,int bits);
 
 void OSD_Show(int visible);
+void OSD_Init();
 
 #endif
 
