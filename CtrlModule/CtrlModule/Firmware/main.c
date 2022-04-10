@@ -208,12 +208,30 @@ void diskstatus_LoadDisk1(int row) {
 #endif
 
 #ifdef WRITE_E5_TO_DISK
-void SaveBlankDiskCallback(unsigned char *data) {
+int SaveBlankDiskCallback(unsigned char *data) {
 	int i;
 	for (i=0; i<512; i++) {
 		data[i] = 0xe5;
 	}
+	return 1;
 }
+#endif
+
+#ifdef BLANK_FIRST_SECTORS
+int nrSectorsBlanked = 0;
+int SaveBlankDiskCallback(unsigned char *data) {
+  if (nrSectorsBlanked < BLANK_FIRST_SECTORS) {
+    int i;
+    for (i=0; i<512; i++) {
+      data[i] = 0x00;
+    }
+    nrSectorsBlanked ++;
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
 #endif
 
 void diskstatus_CreateBlank(int row) {
@@ -235,6 +253,9 @@ void diskstatus_CreateBlank(int row) {
 	OSD_Puts("\n");
 
 #ifdef WRITE_E5_TO_DISK
+	int result = SaveFile(fn2, SaveBlankDiskCallback, DISK_BLOCKS*512);
+#elif BLANK_FIRST_SECTORS
+  nrSectorsBlanked = 0;
 	int result = SaveFile(fn2, SaveBlankDiskCallback, DISK_BLOCKS*512);
 #else
 	int result = SaveFile(fn2, NULL, DISK_BLOCKS*512);

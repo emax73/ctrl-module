@@ -1,6 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#define INCLUDE_DIR_REMOVE
+#define INCLUDE_DIR_MAKE
+#define INCLUDE_FILE_REMOVE
+
 #pragma pack(1)
 #define debug(a) printf a
 
@@ -242,8 +246,8 @@ void testLegacy() {
   nr_entries = 0;
   dir(show);
   printf("current_directory_cluster = %u\n", current_directory_cluster);
-  passifeq(nr_entries, 7, "got root dir");
-  passif(cd("ZX         "), "chdir zx");
+  passifeq(nr_entries, 8, "got root dir");
+  passif(cd("ZX"), "chdir zx");
   //
   printf("current_directory_cluster = %u\n", current_directory_cluster);
   nr_entries = 0;
@@ -306,9 +310,14 @@ void testMkdirRmdir() {
 #define test(a) fprintf(stderr, "-----------------\nTESTING " # a "\n-----------------\n"); printf("-----------------\nTESTING " # a "\n-----------------\n"); test##a()
 
 
+#if FAT==32
+#define FREE_SECTORS  32819
+#else
+#define FREE_SECTORS  16411
+#endif
 void testGetFreeCluster() {
   long sectors_read_last = sectors_read;
-  passifeq(GetFreeCluster(first_free_cluster), 32819, "check got free clusters");
+  passifeq(GetFreeCluster(first_free_cluster), FREE_SECTORS, "check got free clusters");
   fprintf(stderr, "Sectors read before finding free cluster -> %d\n", sectors_read - sectors_read_last);
 }
 

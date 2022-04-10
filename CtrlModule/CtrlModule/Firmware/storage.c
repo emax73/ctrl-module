@@ -100,7 +100,7 @@ int LoadFile(const char *filename, void (*callback)(unsigned char *data)) {
 	return result ? file.size : 0;
 }
 #endif
-int SaveFile(const char *fn, void (*callback)(unsigned char *data), long len) {
+int SaveFile(const char *fn, int (*callback)(unsigned char *data), long len) {
   fileTYPE file;
   int i;
   unsigned long data;
@@ -143,8 +143,9 @@ int SaveFile(const char *fn, void (*callback)(unsigned char *data), long len) {
     debug(("found file\n"));
     while (remaining > 0) {
 			OSD_ProgressBar(c,bits);
-			callback(sector_buffer);
-      FileWrite(&file, sector_buffer);
+			if (callback(sector_buffer)) {
+        FileWrite(&file, sector_buffer);
+      }
       FileNextSector(&file);
       remaining -= 512;
 			++c;

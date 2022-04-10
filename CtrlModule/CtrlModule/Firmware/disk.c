@@ -37,6 +37,7 @@ unsigned long disk_cr = 0;
 #define MAX_BLOCK_NR 1600
 #define NR_DISK_LBA   1600
 #define SECTOR_COUNT_512 10
+#define SECTOR_COUNT_512_CPM 9
 #define SECTOR_COUNT_256 20
 #else
 #define MAX_BLOCK_NR 720
@@ -47,7 +48,8 @@ unsigned long disk_cr = 0;
 
 #if BLOCK_SIZE == 512
 #ifdef SAMCOUPE
-#define STS_TO_BLOCK(side, track, sector) (((((track)*2)+(side))*SECTOR_COUNT_512)+(sector)-1)
+#define STS_TO_BLOCK(side, track, sector) (((((track)*2)+(side))*(isCPM ? SECTOR_COUNT_512_CPM : SECTOR_COUNT_512))+(sector)-1)
+#define STS_TO_BLOCK_CPM(side, track, sector) (((((track)*2)+(side))*9)+(sector)-1)
 #else
 #define STS_TO_BLOCK(side, track, sector) ((side)*80+(track*SECTOR_COUNT_512)+(sector))
 #endif
@@ -67,6 +69,10 @@ static unsigned long diskReadBlock[NR_DISKS] = {NOREQ, NOREQ};
 static unsigned long diskWriteBlock[NR_DISKS] = {NOREQ, NOREQ};
 static unsigned short diskReadOffset[NR_DISKS] = {0, 0};
 unsigned long laststs = 0;
+
+#ifdef SAMCOUPE
+int isCPM = 0;
+#endif
 
 unsigned long StsToBlock(unsigned long sts) {
   unsigned char track = (sts >> 5) & 0x7f;
@@ -163,6 +169,9 @@ int DiskOpen(int i, const char *fn) {
 
   int len = Open(fn, LbaCallback);
   diskIsInserted[i] = len ? 1 : 0;
+#ifdef SAMCOUPE
+  isCPM = len == 737280;
+#endif
   return len ? 1 : 0;
 }
 

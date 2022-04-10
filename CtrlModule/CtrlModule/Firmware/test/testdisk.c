@@ -12,8 +12,11 @@ unsigned char read_data(void);
 
 #if BLOCK_SIZE == 256
 #define MAX_SECTOR  17
+#define S1          0
 #else
-#define MAX_SECTOR  8
+#define MAX_SECTOR  9
+#define SAMCOUPE
+#define S1          1
 #endif
 
 unsigned int DISK_SR = 0;
@@ -67,7 +70,6 @@ void SetIntHandler(int irq, void (*new_handler)()) {
 void testDiskInit(void) {
   passif(DirCd("zx"), "cd zx");
   passif(DirCd("disks"), "cd disks");
-
   //passifeq(handlers[IRQ_DISK], NULL, "no ISR installed");
   DiskInit();
 }
@@ -169,7 +171,7 @@ void testHappyPath(int disk) {
 
   // read sector
   wpos = 0;
-  read_sector(disk, STS(0,0,0));
+  read_sector(disk, STS(0,0,S1));
   passifeq(DISK_CR, HW_DISK_CR_SACK, "expecting ack");
   passifeq(wpos, BLOCK_SIZE, "expecting data");
 
@@ -184,14 +186,36 @@ void testHappyPath(int disk) {
   // passif(DISK_CR == (ack|fin), "expecting ack and fin");
   passif(!memcmp(buffer, sector0, BLOCK_SIZE), "first sector compares ok");
 
+#if BLOCK_SIZE == 512
+  passifeq(STS_TO_BLOCK(0,39,MAX_SECTOR), 788, "check block calculation");
+#else
   passifeq(STS_TO_BLOCK(0,39,MAX_SECTOR), 359, "check block calculation");
+#endif
   wpos = 0;
+#if BLOCK_SIZE != 512
   read_sector(disk, STS(0,39,MAX_SECTOR));
   // read_data(disk, buffer, BLOCK_SIZE);
   // read sector
   update_disk(0, STS(0,39,MAX_SECTOR));
-  passifeq(DISK_CR, 0, "expecting clear");
+  passifeq(DISK_CR, HW_DISK_CR_SACK, "expecting clear");
   passif(isBlank(buffer), "last sector compares ok");
+#endif
+}
+
+void testDiskFormats() {
+#if BLOCK_SIZE == 512
+  unsigned long t1s0_sts = STS(0,1,1);
+
+  ChangeDirectory(NULL);
+  DirCd("sam");
+  passif(DiskOpen(0, "samdos2.dsk"), "open samdos2 disk");
+  passifeq(StsToBlock(t1s0_sts), 20, "check 10 sectors per track format");
+  passif(DiskOpen(0, "cpmdisk.cpm"), "open cpm disk");
+  passifeq(StsToBlock(t1s0_sts), 18, "check 9 sectors per track format");
+
+// cpm 737280
+// samdos2 819200
+#endif
 }
 
 #if 0
@@ -253,9 +277,10 @@ int main(int argc, char **argv) {
   test(DiskInit,());
   test(HappyPath,(0));
   test(HappyPath,(1));
+  test(DiskFormats,());
   // test(OverlappedRead,());
   // test(OverlappedRead2,());
-  passifeq(STS_TO_BLOCK(0,39,MAX_SECTOR), 359, "check block calculation");
+//  passifeq(STS_TO_BLOCK(0,39,MAX_SECTOR), 359, "check block calculation");
 
   closeCard();
   info();

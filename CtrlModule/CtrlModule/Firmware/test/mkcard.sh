@@ -42,6 +42,10 @@ cp ${ROMSSRC}/* t/zx/roms
 mkdir t/zx/disks
 cp ${DISKSRC}/sdcld*.opd t/zx/disks
 
+mkdir t/sam
+cp ${MYHOME}/fpga-xilinx/sdcard/card/samcoupe/samdos2.dsk ./t/sam
+cp ${MYHOME}/fpga-xilinx/sdcard/card/samcoupe/prodos/HiSoft-C-\(V1-35\).cpm ./t/sam/cpmdisk.cpm
+
 mkdir t/empty
 umount t
 

@@ -17,8 +17,8 @@ testsuite FAT16
 # ./testminfat12 > testminfat12.txt || exit 1
 testsuite STORAGE
 ./teststorage > teststorage.txt || exit 1
-testsuite TAPE
-./testtape > testtape.txt || exit 1
+# testsuite TAPE
+# ./testtape > testtape.txt || exit 1
 testsuite SWAP
 ./testswap > testswap.txt || exit 1
 testsuite MISC

@@ -23,7 +23,7 @@ testmisc: testmisc.c ../misc.c ../misc.h common.h
 	gcc -g -DFAT=32 -m32 -o $@ $<
 
 testdisk: testdisk.c ../disk.c ../minfat.c ../misc.c ../misc.h common.h
-	gcc -g -DFAT=32 -m32 -o $@ $<
+	gcc -g -DBLOCK_SIZE=512 -DFAT=32 -m32 -o $@ $<
 
 testdisk256: testdisk.c ../disk.c ../minfat.c ../misc.c ../misc.h common.h
 	gcc -g -DBLOCK_SIZE=256 -DFAT=32 -m32 -o $@ $<

@@ -34,22 +34,22 @@ void testFilenameDerivation() {
 
   memcpy(buff2, hunchb, 256);
   // passifeq(43520, LoadFileX("HUNCHB.TAP", buff2), "read hunchback to buffer");
-  GuessFilename(fn, 0, "TAPE");
+  GuessFilename(fn, buff2, "TAPE");
   passifstreq(fn, "HUNCH", "Should extract filename");
 
   memset(buff2, 0, 1024);
   strcpy(buff2, "$$$$$$$$$hhh$$$$$$$$");
-  GuessFilename(fn, 0, "TAPE");
+  GuessFilename(fn, buff2, "TAPE");
   passifstreq(fn, "HHH", "Should extract filename");
 
   memset(buff2, 0, 1024);
   strcpy(buff2, "$$$$$$$$$hhh$$$12345$$$$$");
-  GuessFilename(fn, 0, "TAPE");
+  GuessFilename(fn, buff2, "TAPE");
   passifstreq(fn, "12345", "Should extract filename");
 
   memset(buff2, 0, 1024);
   strcpy(buff2, "$$$$$$$$$hhh$$$12345$$$$$m.a.s.k.3.4.k.e");
-  GuessFilename(fn, 0, "TAPE");
+  GuessFilename(fn, buff2, "TAPE");
   passifstreq(fn, "MASK34KE", "Should extract filename");
 
   MutateFilename(fn, 2);
@@ -58,12 +58,12 @@ void testFilenameDerivation() {
 
   memset(buff2, 0, 1024);
   strcpy(buff2, "$$$$$$$$$$$$$$$$$$$");
-  GuessFilename(fn, 0, "TAPE");
+  GuessFilename(fn, buff2, "TAPE");
   passifstreq(fn, "TAPE", "Should extract filename");
   MutateFilename(fn, 33);
   passifstreq(fn, "TAPE_021", "Should extract filename");
 
-  GuessFilename(fn, 0, "DISK");
+  GuessFilename(fn, buff2, "DISK");
   passifstreq(fn, "DISK", "Should extract filename");
   MutateFilename(fn, 33);
   passifstreq(fn, "DISK_021", "Should extract filename");

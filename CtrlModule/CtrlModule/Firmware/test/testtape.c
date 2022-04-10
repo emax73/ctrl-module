@@ -134,7 +134,9 @@ unsigned long consumebytes(int n) {
 
 void testLoad() {
   passifeq(loadLen, 0, "check nothing loaded");
-  TapeLoad("HUNCHB  TAP");
+//   TapeLoad("HUNCHB  TAP");
+  DirCd("zx");
+  TapeLoad("hunchb.tap");
   passifeq(loadLen, 43520, "check hunchback loaded");
 
   handlers[IRQ_TAPE]();

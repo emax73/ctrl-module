@@ -2,6 +2,8 @@
 #include <stdio.h>
 
 #define USE_LOADFILE
+#define LOAD_INITIAL_ROM
+#define INCLUDE_FILE_REMOVE
 
 #pragma pack(1)
 #define debug(a) printf a
@@ -92,6 +94,21 @@ unsigned long HW_HOST_LL2(int reg) {
 // }
 
 
+int write_sector_callback(unsigned char *data) {
+  memset(data, 0x55, 512);
+  return 1;
+}
+
+int sector_count_10s = 0;
+int write_10sectors_callback(unsigned char *data) {
+  if (sector_count_10s < 10) {
+    memset(data, 0x55, 512);
+    sector_count_10s++;
+    return 1;
+  }
+  return 0;
+}
+
 
 int main(int argc, char **argv) {
   openCard();
@@ -151,6 +168,35 @@ int main(int argc, char **argv) {
   passif(!compareFile("64krom.bin"), "make sure file was read correctly");
   passifeq(progressBarBits, 7, "progress bar dimentions correct");
 
+  int old_sectors_written;
+  
+  old_sectors_written = sectors_written;
+  SaveFile("tempfile.tmp", NULL, 128*1024);
+  passifeq(sectors_written-old_sectors_written, 8, "Just allocated space using SaveFile");
+  FileRm("tempfile.tmp");
+
+  old_sectors_written = sectors_written;
+  SaveFile("tempfile.tmp", write_sector_callback, 128*1024);
+  passifeq(sectors_written-old_sectors_written, 8+256, "wrote to image file using SaveFile");
+  FileRm("tempfile.tmp");
+
+  old_sectors_written = sectors_written;
+  sector_count_10s = 0;
+  SaveFile("tempfile.tmp", write_10sectors_callback, 128*1024);
+  passifeq(sectors_written-old_sectors_written, 8+10, "wrote to image file using SaveFile");
+  FileRm("tempfile.tmp");
+  
+  
+  //   write_sector_callback
+  
+  
+//     callbackData = data;
+// 
+//     int SaveFile(const char *fn, void (*callback)(unsigned char *data), long len) {
+//   return SaveFile(filename, callbacksave, len);
+// #endif
+  
+  
   free(buff);
   free(buff2);
   closeCard();
