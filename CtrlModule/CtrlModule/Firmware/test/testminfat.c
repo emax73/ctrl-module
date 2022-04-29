@@ -311,7 +311,7 @@ void testMkdirRmdir() {
 
 
 #if FAT==32
-#define FREE_SECTORS  32819
+#define FREE_SECTORS  83157
 #else
 #define FREE_SECTORS  16411
 #endif
@@ -321,6 +321,13 @@ void testGetFreeCluster() {
   fprintf(stderr, "Sectors read before finding free cluster -> %d\n", sectors_read - sectors_read_last);
 }
 
+void testVeryLfns() {
+  TEST_resetdir();
+  DirCd("lfn");
+  nr_entries = 0;
+  dir(show);
+  passifeq(nr_entries, 31, "got zx dir");
+}
 
 int main(int argc, char **argv) {
   openCard();
@@ -334,6 +341,8 @@ int main(int argc, char **argv) {
   test(MkdirRmdir);
 
   testGetFreeCluster();
+  
+  test(VeryLfns);
 
 
 	closeCard();

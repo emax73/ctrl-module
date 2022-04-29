@@ -558,12 +558,7 @@ int FileOpen(fileTYPE *file, const char *name)
                 {
                     if (compare((const char*)pEntry->Name, name,11) == 0)
                     {
-                        file->size = SwapBBBB(pEntry->FileSize); 		// for 68000
-                        file->cluster = SwapBB(pEntry->StartCluster);
-												file->cluster += (fat32 ? (SwapBB(pEntry->HighCluster) & 0x0FFF) << 16 : 0);
-                        file->sector = 0;
-
-                        return(1);
+                        return FileOpenDirEntry(file, pEntry);
                     }
                 }
             }
@@ -583,6 +578,13 @@ int FileOpen(fileTYPE *file, const char *name)
     return(0);
 }
 
+int FileOpenDirEntry(fileTYPE *file, DIRENTRY *pEntry) {
+    file->size = SwapBBBB(pEntry->FileSize); 		// for 68000
+    file->cluster = SwapBB(pEntry->StartCluster);
+    file->cluster += (fat32 ? (SwapBB(pEntry->HighCluster) & 0x0FFF) << 16 : 0);
+    file->sector = 0;
+    return 1;
+}
 
 int FileNextSector(fileTYPE *file) {
     // increment sector index

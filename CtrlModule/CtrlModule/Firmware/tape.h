@@ -12,7 +12,7 @@ extern char tapeSaveSize[32];
 extern void TapeUpdateStatus(void);
 extern void TapeInit(void);
 extern void TapeErase(void);
-extern int TapeLoad(const char *fn);
+extern int TapeLoad(const char *fn, DIRENTRY *p);
 extern int TapeSave(void);
 extern void TapeRewind(void);
 extern void TapeUseRecordBuffer(void);

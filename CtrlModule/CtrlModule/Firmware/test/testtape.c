@@ -136,7 +136,7 @@ void testLoad() {
   passifeq(loadLen, 0, "check nothing loaded");
 //   TapeLoad("HUNCHB  TAP");
   DirCd("zx");
-  TapeLoad("hunchb.tap");
+  TapeLoad("hunchb.tap", NULL);
   passifeq(loadLen, 43520, "check hunchback loaded");
 
   handlers[IRQ_TAPE]();

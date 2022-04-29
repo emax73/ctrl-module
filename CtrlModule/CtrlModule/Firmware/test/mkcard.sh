@@ -6,7 +6,7 @@ fi
 
 mkcard()
 {
-dd if=/dev/zero of=./tmp/card.$1 bs=1024 count=65536
+dd if=/dev/zero of=./tmp/card.$1 bs=1024 count=131072
 #dd if=/dev/zero of=./tmp/card.$1 bs=1024 count=98304
 
 fdisk ./tmp/card.$1 << EOF
@@ -45,6 +45,9 @@ cp ${DISKSRC}/sdcld*.opd t/zx/disks
 mkdir t/sam
 cp ${MYHOME}/fpga-xilinx/sdcard/card/samcoupe/samdos2.dsk ./t/sam
 cp ${MYHOME}/fpga-xilinx/sdcard/card/samcoupe/prodos/HiSoft-C-\(V1-35\).cpm ./t/sam/cpmdisk.cpm
+
+mkdir t/lfn
+cp ${MYHOME}/fpga-xilinx/sam-coupe2/disks/seleccion/* t/lfn
 
 mkdir t/empty
 umount t

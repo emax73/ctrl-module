@@ -124,9 +124,9 @@ static void LbaCallback(unsigned int lba) {
     tapeLba[tapeLbaNr++] = lba;
 }
 
-int TapeLoad(const char *fn) {
+int TapeLoad(const char *fn, DIRENTRY *p) {
   tapeLbaNr = 0;
-  loadLen = Open(fn, LbaCallback);
+  loadLen = Open(fn, p, LbaCallback);
   nrLoadBytes = loadPos = 0;
 
   TapeRewind();

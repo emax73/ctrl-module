@@ -1,5 +1,5 @@
-#include "disk.h"
 #include "minfat.h"
+#include "disk.h"
 #include "interrupts.h"
 #include "misc.h"
 #include "host.h"
@@ -163,11 +163,11 @@ static void LbaCallback(unsigned int lba) {
   diskLba[disk][mem++] = lba;
 }
 
-int DiskOpen(int i, const char *fn) {
+int DiskOpen(int i, const char *fn, DIRENTRY *p) {
   disk = i;
   mem = 0;
 
-  int len = Open(fn, LbaCallback);
+  int len = Open(fn, p, LbaCallback);
   diskIsInserted[i] = len ? 1 : 0;
 #ifdef SAMCOUPE
   isCPM = len == 737280;

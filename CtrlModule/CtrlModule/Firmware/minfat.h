@@ -124,6 +124,7 @@ int FileRm(const char *dir);
 int FileCreate(const char *file, unsigned long size);
 int FileExists(const char *dir);
 int FileExistsEx(const char *dir, unsigned long *cluster);
+int FileOpenDirEntry(fileTYPE *file, DIRENTRY *de);
 void FilenameNormalise(char *out, const char *in);
 unsigned long MaxLba();
 void FatInit();

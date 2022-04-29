@@ -1,7 +1,7 @@
 #include "misc.h"
 #include "host.h"
-#include "storage.h"
 #include "minfat.h"
+#include "storage.h"
 
 static fileTYPE file;
 
@@ -189,14 +189,20 @@ int Save(const char *fn, long len) {
   return 0;
 }
 
-int Open(const char *fn, void (*lbacb)(uint32_t)) {
+int Open(const char *fn, DIRENTRY *p, void (*lbacb)(uint32_t)) {
   fileTYPE file;
   unsigned long lba;
-  char fnn[13];
+  int result = 0;
 
-  FilenameNormalise(fnn, fn);
+  if (p != 0) {
+    result = FileOpenDirEntry(&file, p);
+  } else {
+    char fnn[13];
+    FilenameNormalise(fnn, fn);
+    result = FileOpen(&file, fnn);
+  }
 
-  if (FileOpen(&file, fnn)) {
+  if (result) {
     int filesize=file.size;
 		unsigned int c=0;
 		int bits = GetBits(filesize);

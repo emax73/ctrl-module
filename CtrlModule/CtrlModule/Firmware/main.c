@@ -184,8 +184,8 @@ static struct menu_entry tapestatus[]=
 // DISK HANDLING
 static struct menu_entry diskstatus[];
 static char diskNr = 0;
-static int diskstatus_LoadDiskReal(const char *filename) {
-  int result = DiskOpen(diskNr, filename);
+static int diskstatus_LoadDiskReal(const char *filename, DIRENTRY *p) {
+  int result = DiskOpen(diskNr, filename, p);
   if(result)
 		Menu_Set(diskstatus);
 	else

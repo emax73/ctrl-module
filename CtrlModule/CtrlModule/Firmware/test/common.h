@@ -150,7 +150,7 @@ int show(DIRENTRY *p) {
   memcpy(&str[9], p->Extension, 3);
   str[8] = '.';
   str[12] = '\0';
-  printf("name:%s attr:0x%X size:%lu\n", str, p->Attributes, p->FileSize);
+  printf("name:%s attr:0x%X size:%lu lfn:%s\n", str, p->Attributes, p->FileSize, longfilename);
   nr_entries ++;
   return 0;
 }

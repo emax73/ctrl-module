@@ -8,7 +8,7 @@
 #	define DISK_EXTENSION      ".OPD"
 #	define DISK_BLOCKS   360
 #endif
-extern int DiskOpen(int i, const char *fn);
+extern int DiskOpen(int i, const char *fn, DIRENTRY *p);
 extern int DiskClose(void);
 extern void DiskInit(void);
 extern void DiskHandler(void);

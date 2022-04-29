@@ -4,11 +4,15 @@
 static int romindex=0;
 static int romcount;
 
+// function prototypes
 static void listroms();
 static void selectrom(int row);
 static void scrollroms(int row);
-int (*loadfunction)(const char *filename); // Callback function
+static DIRENTRY *nthfile(int n);
 
+int (*loadfunction)(const char *filename, DIRENTRY *p); // Callback function
+
+// menu declarations
 static char romfilenames[13][30];
 
 static struct menu_entry rommenu[]=
@@ -40,20 +44,6 @@ static void copyname(char *dst,const unsigned char *src,int l)
 }
 
 
-static DIRENTRY *nthfile(int n)
-{
-	int i,j=0;
-	DIRENTRY *p;
-	for(i=0;(j<=n) && (i<dir_entries);++i)
-	{
-		p=NextDirEntry(i);
-		if(p)
-			++j;
-	}
-	return(p);
-}
-
-
 static void selectrom(int row)
 {
 	DIRENTRY *p=nthfile(romindex+row);
@@ -62,7 +52,7 @@ static void selectrom(int row)
 		copyname(longfilename,p->Name,11);	// Make use of the long filename buffer to store a temporary copy of the filename,
 											// since loading it by name will overwrite the sector buffer which currently contains it!
 		if(loadfunction)
-			(*loadfunction)(longfilename);
+			(*loadfunction)(longfilename, p);
 	}
 }
 
@@ -103,49 +93,74 @@ static void scrollroms(int row)
 }
 
 
-static void listroms()
-{
-	int i,j;
-	j=0;
-	for(i=0;(j<romindex) && (i<dir_entries);++i)
-	{
-		DIRENTRY *p=NextDirEntry(i);
-		if(p)
-			++j;
-	}
 
-	for(j=0;(j<12) && (i<dir_entries);++i)
-	{
-		DIRENTRY *p=NextDirEntry(i);
-		if(p)
-		{
-			// FIXME declare a global long file name buffer.
-			if(p->Attributes&ATTR_DIRECTORY)
-			{
-				rommenu[j].action=MENU_ACTION(&selectdir);
-				romfilenames[j][0]=16; // Right arrow
-				romfilenames[j][1]=' ';
-				if(longfilename[0])
-					copyname(romfilenames[j++]+2,longfilename,28);
-				else
-					copyname(romfilenames[j++]+2,p->Name,11);
-			}
-			else
-			{
-				rommenu[j].action=MENU_ACTION(&selectrom);
-				if(longfilename[0])
-					copyname(romfilenames[j++],longfilename,28);
-				else
-					copyname(romfilenames[j++],p->Name,11);
-			}
-		}
-		else
-			romfilenames[j][0]=0;
-	}
-	for(;j<12;++j)
-		romfilenames[j][0]=0;
+typedef struct {
+  int romindex;
+  int i;
+} ListRomsType;
+
+static int listroms_cb(void *p, DIRENTRY *d, char *lfn, int index, int prevlfn) {
+  ListRomsType *lrt = (ListRomsType *)p;
+  if (lrt->romindex) {
+    lrt->romindex--;
+    
+  } else if (lrt->i < 12) {
+    if(d->Attributes&ATTR_DIRECTORY) {
+      rommenu[lrt->i].action=MENU_ACTION(&selectdir);
+      romfilenames[lrt->i][0]=16; // Right arrow
+      romfilenames[lrt->i][1]=' ';
+      if(longfilename[0])
+        copyname(romfilenames[lrt->i++]+2,longfilename,28);
+      else
+        copyname(romfilenames[lrt->i++]+2,d->Name,11);
+    } else {
+      rommenu[lrt->i].action=MENU_ACTION(&selectrom);
+      if(longfilename[0])
+        copyname(romfilenames[lrt->i++],longfilename,28);
+      else
+        copyname(romfilenames[lrt->i++],d->Name,11);
+    }
+  } else {
+    return 1; // stop listing
+  }
+  return 0;
 }
 
+static void listroms() {
+  ListRomsType lrt = {romindex, 0};
+  int i;
+    
+  // fill new files in
+	DirEnum((void*)&lrt, listroms_cb, 0);
+
+    // clear out rom names
+  for (; lrt.i<12; lrt.i++) {
+    romfilenames[lrt.i][0]=0;
+  }
+}
+
+// select nth file from current directory
+typedef struct {
+  int index;
+  DIRENTRY *d;
+} NthFileType;
+
+static int nthfile_cb(void *p, DIRENTRY *d, char *lfn, int index, int prevlfn) {
+  int result = 0;
+  NthFileType *nf = (NthFileType *)p;
+  if (nf->index) nf->index--;
+  else {
+    nf->d = d;
+    result = 1;
+  }
+  return result;
+}
+
+static DIRENTRY *nthfile(int n) {
+  NthFileType nf = {n, 0};
+	DirEnum((void*)&nf, nthfile_cb, 0);
+  return nf.d;
+}
 
 void FileSelector_Show(int row)
 {
@@ -156,7 +171,7 @@ void FileSelector_Show(int row)
 }
 
 
-void FileSelector_SetLoadFunction(int (*func)(const char *filename))
+void FileSelector_SetLoadFunction(int (*func)(const char *filename, DIRENTRY *p))
 {
 	loadfunction=func;
 }

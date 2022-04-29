@@ -2,7 +2,7 @@
 #define FILESELECTOR_H
 
 void FileSelector_Show(int row);
-void FileSelector_SetLoadFunction(int (*func)(const char *filename));
+void FileSelector_SetLoadFunction(int (*func)(const char *filename, DIRENTRY *p));
 
 #endif
 

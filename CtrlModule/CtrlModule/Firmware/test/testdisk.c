@@ -166,7 +166,7 @@ void testHappyPath(int disk) {
   // int fin = (disk ? HW_DISK_CR_FIN1 : HW_DISK_CR_FIN0);
   //passifeq(handlers[IRQ_DISK], DiskISR, "ISR installed");
   passif(!diskIsInserted[disk], "no disk inserted");
-  passif(DiskOpen(disk, "SDCLD01.OPD"), "open actual disk");
+  passif(DiskOpen(disk, "SDCLD01.OPD", NULL), "open actual disk");
   passif(diskIsInserted[disk], "disk inserted");
 
   // read sector
@@ -208,9 +208,9 @@ void testDiskFormats() {
 
   ChangeDirectory(NULL);
   DirCd("sam");
-  passif(DiskOpen(0, "samdos2.dsk"), "open samdos2 disk");
+  passif(DiskOpen(0, "samdos2.dsk", NULL), "open samdos2 disk");
   passifeq(StsToBlock(t1s0_sts), 20, "check 10 sectors per track format");
-  passif(DiskOpen(0, "cpmdisk.cpm"), "open cpm disk");
+  passif(DiskOpen(0, "cpmdisk.cpm", NULL), "open cpm disk");
   passifeq(StsToBlock(t1s0_sts), 18, "check 9 sectors per track format");
 
 // cpm 737280
