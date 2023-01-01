@@ -1,3 +1,6 @@
+CtrlModule/CtrlModule/CharROM/CharROM.bin
+CtrlModule/CtrlModule/CharROM/CharROM_ROM.vhd
+CtrlModule/CtrlModule/CharROM/charromgen
 CtrlModule/CtrlModule/Firmware/CtrlROM.bin
 CtrlModule/CtrlModule/Firmware/CtrlROM.elf
 CtrlModule/CtrlModule/Firmware/CtrlROM.rpt
